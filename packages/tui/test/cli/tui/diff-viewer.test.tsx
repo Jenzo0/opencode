@@ -155,7 +155,7 @@ async function renderDiffViewer(vcsDiff: unknown[], height = 20, initialRoute?: 
     } satisfies TuiPluginApi
 
     void diffViewerPlugin.tui(api, undefined, pluginMeta)
-    if (!initialRoute) await commands.get("diff.open")?.run?.({} as never)
+    if (!initialRoute) void commands.get("diff.open")?.run?.({} as never)
 
     return (
       <TestTuiContexts>
