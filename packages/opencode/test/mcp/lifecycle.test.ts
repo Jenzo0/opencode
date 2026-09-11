@@ -133,7 +133,7 @@ function lifecycleServer(input?: { capabilities?: ServerCapabilities; instructio
         },
         close: async () => {
           await current.protocol.close().catch(() => {})
-          http.stop(true)
+          void http.stop(true)
         },
       }
     }),
@@ -167,7 +167,7 @@ function hangingLifecycleServer() {
         url: http.url.toString(),
         close: async () => {
           await protocol.close().catch(() => {})
-          http.stop(true)
+          void http.stop(true)
         },
       }
     }),

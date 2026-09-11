@@ -271,14 +271,14 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                   sessionId: activeSession.id,
                 }
                 const model = tabs.stateValue<PromptSession>(sessionTab, "prompt")?.model.current()
-                tabs.newDraft({ server: sessionTab.server, directory: activeSession.directory }, "", model)
+                void tabs.newDraft({ server: sessionTab.server, directory: activeSession.directory }, "", model)
                 return
               }
 
               const activeTab = currentTab()
               if (activeTab?.type === "draft") {
                 const model = tabs.stateValue<PromptSession>(activeTab, "prompt")?.model.current()
-                tabs.newDraft({ server: activeTab.server, directory: activeTab.directory }, "", model)
+                void tabs.newDraft({ server: activeTab.server, directory: activeTab.directory }, "", model)
                 return
               }
 
@@ -292,14 +292,14 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                       .find((item) => item.worktree === selection.directory)
                   : undefined
                 if (conn && project) {
-                  tabs.newDraft({ server: ServerConnection.key(conn), directory: project.worktree }, "")
+                  void tabs.newDraft({ server: ServerConnection.key(conn), directory: project.worktree }, "")
                   return
                 }
               }
 
               const current = layout.projects.list()[0]
               if (current) {
-                tabs.newDraft({ server: server.key, directory: current.worktree }, "")
+                void tabs.newDraft({ server: server.key, directory: current.worktree }, "")
                 return
               }
 
@@ -309,7 +309,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
               })[0]
               if (!fallback) return
 
-              tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
+              void tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
             }
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 

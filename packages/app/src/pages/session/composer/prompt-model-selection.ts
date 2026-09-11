@@ -65,7 +65,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
       if (next) selection.set({ providerID: next.provider.id, modelID: next.id })
     },
     set(item: ModelKey | undefined, options?: { recent?: boolean }) {
-      startTransition(() =>
+      void startTransition(() =>
         batch(() => {
           prompt.model.set(item ? { ...item, variant: prompt.model.current()?.variant } : undefined)
           if (!item) return
@@ -105,7 +105,7 @@ export function createPromptModelSelection(input: { agent: () => { model?: Model
         return Object.keys(current()?.variants ?? {})
       },
       set(value: string | undefined) {
-        startTransition(() =>
+        void startTransition(() =>
           batch(() => {
             const model = current()
             if (!model) return

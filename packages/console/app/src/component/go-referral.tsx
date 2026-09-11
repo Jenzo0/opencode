@@ -149,7 +149,7 @@ export function GoReferralSection(props: {
 
     const request = { cancelled: false }
     setPreview(undefined)
-    queryGoReferralUsagePreview(props.workspaceID, reward.id).then((result) => {
+    void queryGoReferralUsagePreview(props.workspaceID, reward.id).then((result) => {
       if (request.cancelled) return
       setPreview(result)
     })

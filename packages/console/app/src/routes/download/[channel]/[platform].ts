@@ -50,7 +50,7 @@ export async function GET({ params: { platform, channel } }: APIEvent) {
   headers.set("cache-control", "public, max-age=31536000, immutable")
   headers.delete("set-cookie")
   const result = new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers })
-  waitUntil(cache.put(key, result.clone()))
+  void waitUntil(cache.put(key, result.clone()))
   return download(result, platform, "MISS")
 }
 

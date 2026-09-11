@@ -252,4 +252,4 @@ const program = Effect.gen(function* () {
   yield* streamWithTools
 }).pipe(Effect.provide(Layer.mergeAll(llmDeps, llmClientLayer)))
 
-Effect.runPromise(program)
+void Effect.runPromise(program)

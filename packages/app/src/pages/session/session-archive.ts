@@ -33,7 +33,7 @@ export function useSessionArchive() {
       return
     }
     if (params.serverKey) {
-      tabs.newDraft({ server: requireServerKey(params.serverKey), directory: sdk().directory })
+      void tabs.newDraft({ server: requireServerKey(params.serverKey), directory: sdk().directory })
       return
     }
     navigate(`/${params.dir}/session`)
