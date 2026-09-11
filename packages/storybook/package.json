@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "storybook": "storybook dev -p 6006",
-    "build": "storybook build"
+    "build": "storybook build",
+    "typecheck": "tsgo --noEmit"
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
