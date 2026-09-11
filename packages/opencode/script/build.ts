@@ -166,7 +166,7 @@ for (const item of targets) {
     plugins: [plugin],
     external: ["node-gyp"],
     format: "esm",
-    minify: false, // JENZOCODE-BUILD: single-chunk (splitting:false) — chunk splitting breaks layer-node dep graph (node.name crash)
+    minify: true, // JENZOCODE-EXPERIMENT-P2.1: minify without splitting — revert if run crashes
     sourcemap: sourcemapsFlag ? "linked" : "none",
     splitting: false,
     compile: {

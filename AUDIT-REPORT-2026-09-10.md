@@ -266,7 +266,7 @@ git push origin jenzo-fork
 ### المرحلة 3 — تحسينات هيكلية (شهر)
 
 **P2.1 — حل الـ minify من غير كسر الـ build**
-جرب `splitting:false + minify:true` (بدون splitting) — ممكن يشتغل ويكسّر المشكلة. لو نجح، الباينري ممكن ينزل من 298 MB لـ ~120 MB.
+**P2.1 — minify بدون splitting:** ✅ نجحت — الباينري نزل من 298MB لـ **244MB (-18%)** والـ `run` الحقيقي شغال بدون `node.name` crash. بقى هو الإعداد الرسمي للبناء.
 
 **P2.2 — حل الـ shallow clone**
 `git fetch --unshallow` عشان يعرف يعمل rebase على upstream بسهولة.
