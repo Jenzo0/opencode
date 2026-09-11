@@ -367,7 +367,25 @@ wire الـ harness بتاع `harbor-framework/terminal-bench` على موديل
 
 ---
 
-## 7) منهجية القياس (للتحقق)
+## 7) المرحلة 2 — التقارير المنفذة (2026-09-11، branch `jenzo-fork` على `Jenzo0/opencode`)
+
+**P1.1 — floating promises (81 → 1):** إصلاح جذري في `lsp/client.ts` (تعليق أبدي عند فشل طلب) و `lsp.ts` (rejection غير مرصود) + `void` صريح لكل fire-and-forget + `await` لإرسال الأحداث في الاختبارات. الباقي ملف متولد آلياً. الفشل الوحيد المكتشف (`provider-gateway` circular import) قديم من upstream.
+
+**P1.2 — اختبارات السيرفر:** أول 20 اختبار (`auth` + `cors`) + سكريبت `test` — 20/20.
+
+**P1.3 — `db prune`:** أمر جديد (عمر + dry-run + VACUUM). اكتشاف مهم: الـ 578MB أغلبها جدول `event` (560MB لسيشنز شغالة) مش سيشنز ميتة — التقليم بالعمر تأثيره محدود، وضغط سجل الأحداث قرار upstream.
+
+**P1.4 — typecheck شامل:** سكريبت `typecheck` بقى في الـ 26 باكدج. أخطاء قديمة من upstream في `function` (13) و `storybook` (1) و `web` (4) — متسابة عمداً خارج سكوب الفورك.
+
+**P2.2 — full clone:** `git fetch --unshallow` اتنفذ — الـ rebase على upstream بقى ممكناً.
+
+**P2.4 — براندنج كامل للواجهة:** ACP (اسم الوكيل + أوامر الدخول) و TUI tips و API docs و dialogs — مع تحديث اختبارات الفورك نفسها. المستثنى عمداً: `@opencode-ai` scope و `OPENCODE_*` env و `x-opencode-*` headers و `opencode.ai` و Zen/Go و billing/OAuth identifiers.
+
+**Flakes:** الـ 2 المعروفين بقوا بـ `{ retry: 2 }` بعد إثبات دعم bun للخيار.
+
+---
+
+## 8) منهجية القياس (للتحقق)
 
 كل الأرقام في التقرير ده من تنفيذ فعلي على الجهاز، مش تقديرات:
 
