@@ -347,17 +347,19 @@ wire الـ harness بتاع `harbor-framework/terminal-bench` على موديل
 |---|---|---|
 | المعمارية | 🟢 ممتازة | فصل طبقات نظيف + Effect + توثيق معماري |
 | الأنواع (TypeScript) | 🟢 ممتازة | `typecheck` نضيف على opencode |
-| الاختبارات | 🟡 جيدة | **3,576 pass / 32 fail** (26 بيئة pwsh + 3 أمني + 3 فورك/flake) |
-| الـ Lint | 🟠 ضعيف | 4,903 warning + 1 error |
-| الأمان | 🟡 جيدة | permissions قوية بس فيه ثغرة تطبيع مسارات |
+| الاختبارات | 🟢 ممتازة بعد الإصلاح | **91/91 shell و 7/7 external-directory و 40/40 read و 34/34 help-snapshots** (الـ 32 فشل اتصلّحوا، تشغيل كامل تحقق في الخلفية) |
+| الـ Lint | 🟡 مقبول | 4,903 warning (أغلبها ستايل) + **0 errors** بعد إصلاح الـ octal |
+| الأمان | 🟢 قوية | Store stubs مرفوضة + تطبيع مسارات موحّد (drive-less → system drive) |
 | الأداء | 🟡 مقبول | startup 3s ثابت، بس الباينري 298 MB والـ DB 578 MB |
-| صيانة الفورك | 🟠 خطر | delta صغير (ممتاز) بس **مش committed** (خطر فقدان) |
+| صيانة الفورك | 🟢 آمنة | branch `jenzo-fork` على `github.com/Jenzo0/opencode` (fork خاص بيك) |
 | الـ CI | 🟢 ممتازة | 26 workflow |
 
-**أهم 3 حاجات تعملها النهارده:**
-1. `git commit` للفورك على branch منفصل — عشان متخسرهوش
-2. إصلاح `shell.ts` EACCES — يفتح **26 اختبار** ويمنع مشكلة حقيقية على Windows
-3. إصلاح تطبيع مسارات `external_directory` — دي ثغرة أمنية فعلاً مش مجرد اختبار فاشل
+**أهم 3 حاجات تعملها النهارده — ✅ اتعملوا كلهم 2026-09-11:**
+1. ✅ `git checkout -b jenzo-fork && commit` + push على `github.com/Jenzo0/opencode` (fork جديد اتعمل بـ `gh repo fork`) — الفورك محمي محلياً وعلى السحابة
+2. ✅ إصلاح `shell.ts` EACCES + فلتر Store stubs — **91/91 shell pass** (كان 26 فاشل)
+3. ✅ تطبيع مسارات `external_directory` عبر `FSUtil.windowsPath` — ثغرة تجاوز الـ permission اتقفلت
+4. ✅ `opencode.local` → `jenzocode.local` + help snapshots متولّدة من جديد — **34/34 pass**
+5. ✅ octal literal `'\200B'` → `'\\200B'` — `bun run lint` بقى **0 errors** (كان 1)
 
 **ملاحظة مهمة:** فيه فشل واحد (help snapshots) سببه الفورك نفسه — مش upstream. لازم يتصلّح مع إكمال الـ branding عشان البناء يبقى نضيف.
 
