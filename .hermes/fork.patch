@@ -1,0 +1,356 @@
+diff --git a/packages/opencode/package.json b/packages/opencode/package.json
+index c7c4670..44177dd 100644
+--- a/packages/opencode/package.json
++++ b/packages/opencode/package.json
+@@ -12,11 +12,14 @@
+     "bench:test": "bun run script/bench-test-suite.ts",
+     "profile:test": "bun run script/profile-test-files.ts",
+     "build": "bun run script/build.ts",
++    "build:jenzo": "OPENCODE_CHANNEL=dev bun run script/build.ts --single --skip-install",
++    "deploy:jenzo": "bun run build:jenzo && cp dist/opencode-windows-x64/bin/jenzocode.exe C:/Users/Jenzo/bin/jenzocode.exe && cp dist/opencode-windows-x64/bin/jenzocode.exe C:/Users/Jenzo/bin/jc.exe",
+     "dev": "bun run ./src/index.ts",
+     "dev:temporary": "bun run ./src/temporary.ts"
+   },
+   "bin": {
+-    "opencode": "./bin/opencode"
++    "jenzocode": "./bin/opencode",
++    "jc": "./bin/opencode"
+   },
+   "exports": {
+     "./*": "./src/*.ts"
+diff --git a/packages/opencode/script/build.ts b/packages/opencode/script/build.ts
+index ce45f77..bcd83f3 100755
+--- a/packages/opencode/script/build.ts
++++ b/packages/opencode/script/build.ts
+@@ -166,16 +166,16 @@ for (const item of targets) {
+     plugins: [plugin],
+     external: ["node-gyp"],
+     format: "esm",
+-    minify: true,
++    minify: false, // JENZOCODE-BUILD: single-chunk (splitting:false) — chunk splitting breaks layer-node dep graph (node.name crash)
+     sourcemap: sourcemapsFlag ? "linked" : "none",
+-    splitting: true,
++    splitting: false,
+     compile: {
+       autoloadBunfig: false,
+       autoloadDotenv: false,
+       autoloadTsconfig: true,
+       autoloadPackageJson: true,
+       target: name.replace(pkg.name, "bun") as any,
+-      outfile: `dist/${name}/bin/opencode`,
++      outfile: `dist/${name}/bin/jenzocode`,
+       execArgv: [`--user-agent=opencode/${Script.version}`, "--use-system-ca", "--"],
+       windows: {},
+     },
+@@ -203,7 +203,7 @@ for (const item of targets) {
+ 
+   // Smoke test: only run if binary is for current platform
+   if (item.os === process.platform && item.arch === process.arch && !item.abi) {
+-    const binaryPath = `dist/${name}/bin/opencode`
++    const binaryPath = `dist/${name}/bin/jenzocode`
+     console.log(`Running smoke test: ${binaryPath} --version`)
+     try {
+       const versionOutput = await $`${binaryPath} --version`.text()
+diff --git a/packages/opencode/src/cli/cmd/attach.ts b/packages/opencode/src/cli/cmd/attach.ts
+index 6f5aea6..9c10084 100644
+--- a/packages/opencode/src/cli/cmd/attach.ts
++++ b/packages/opencode/src/cli/cmd/attach.ts
+@@ -6,7 +6,7 @@ import { ServerAuth } from "@/server/auth"
+ 
+ export const AttachCommand = cmd({
+   command: "attach <url>",
+-  describe: "attach to a running opencode server",
++  describe: "attach to a running jenzocode server",
+   builder: (yargs) =>
+     yargs
+       .positional("url", {
+diff --git a/packages/opencode/src/cli/cmd/run.ts b/packages/opencode/src/cli/cmd/run.ts
+index cccc255..ca2635d 100644
+--- a/packages/opencode/src/cli/cmd/run.ts
++++ b/packages/opencode/src/cli/cmd/run.ts
+@@ -125,7 +125,7 @@ async function toolError(part: ToolPart) {
+ 
+ export const RunCommand = effectCmd({
+   command: "run [message..]",
+-  describe: "run opencode with a message",
++  describe: "run jenzocode with a message",
+   // --attach connects to a remote server (no local instance needed); the
+   // default path runs an in-process server and needs the project instance.
+   instance: (args) => !args.attach,
+diff --git a/packages/opencode/src/cli/cmd/serve.ts b/packages/opencode/src/cli/cmd/serve.ts
+index c0f62b3..0f8fad3 100644
+--- a/packages/opencode/src/cli/cmd/serve.ts
++++ b/packages/opencode/src/cli/cmd/serve.ts
+@@ -6,7 +6,7 @@ import { Flag } from "@opencode-ai/core/flag/flag"
+ export const ServeCommand = effectCmd({
+   command: "serve",
+   builder: (yargs) => withNetworkOptions(yargs),
+-  describe: "starts a headless opencode server",
++  describe: "starts a headless jenzocode server",
+   // Server loads instances per-request via x-opencode-directory header — no
+   // need for an ambient project InstanceContext at startup.
+   instance: false,
+@@ -17,7 +17,7 @@ export const ServeCommand = effectCmd({
+     }
+     const opts = yield* resolveNetworkOptions(args)
+     const server = yield* Effect.promise(() => Server.listen(opts))
+-    console.log(`opencode server listening on http://${server.hostname}:${server.port}`)
++    console.log(`jenzocode server listening on http://${server.hostname}:${server.port}`)
+ 
+     yield* Effect.never
+   }),
+diff --git a/packages/opencode/src/cli/cmd/tui.ts b/packages/opencode/src/cli/cmd/tui.ts
+index 95ffac7..77a9054 100644
+--- a/packages/opencode/src/cli/cmd/tui.ts
++++ b/packages/opencode/src/cli/cmd/tui.ts
+@@ -71,12 +71,12 @@ export function resolveThreadDirectory(project?: string, envPWD = process.env.PW
+ 
+ export const TuiThreadCommand = cmd({
+   command: "$0 [project]",
+-  describe: "start opencode tui",
++  describe: "start jenzocode tui",
+   builder: (yargs) =>
+     withNetworkOptions(yargs)
+       .positional("project", {
+         type: "string",
+-        describe: "path to start opencode in",
++        describe: "path to start jenzocode in",
+       })
+       .option("model", {
+         type: "string",
+diff --git a/packages/opencode/src/cli/cmd/uninstall.ts b/packages/opencode/src/cli/cmd/uninstall.ts
+index 0afdc51..821899b 100644
+--- a/packages/opencode/src/cli/cmd/uninstall.ts
++++ b/packages/opencode/src/cli/cmd/uninstall.ts
+@@ -24,7 +24,7 @@ interface RemovalTargets {
+ 
+ export const UninstallCommand = {
+   command: "uninstall",
+-  describe: "uninstall opencode and remove all related files",
++  describe: "uninstall jenzocode and remove all related files",
+   builder: (yargs: Argv) =>
+     yargs
+       .option("keep-config", {
+diff --git a/packages/opencode/src/cli/cmd/upgrade.ts b/packages/opencode/src/cli/cmd/upgrade.ts
+index 3c1604a..00b0095 100644
+--- a/packages/opencode/src/cli/cmd/upgrade.ts
++++ b/packages/opencode/src/cli/cmd/upgrade.ts
+@@ -6,7 +6,7 @@ import { InstallationVersion } from "@opencode-ai/core/installation/version"
+ 
+ export const UpgradeCommand = {
+   command: "upgrade [target]",
+-  describe: "upgrade opencode to the latest or a specific version",
++  describe: "upgrade jenzocode to the latest or a specific version",
+   builder: (yargs: Argv) => {
+     return yargs
+       .positional("target", {
+@@ -20,55 +20,13 @@ export const UpgradeCommand = {
+         choices: ["curl", "npm", "pnpm", "bun", "brew", "choco", "scoop"],
+       })
+   },
+-  handler: async (args: { target?: string; method?: string }) => {
++  handler: async () => {
+     UI.empty()
+     UI.println(UI.logo("  "))
+     UI.empty()
+     prompts.intro("Upgrade")
+-    const detectedMethod = await Installation.method()
+-    const method = (args.method as Installation.Method) ?? detectedMethod
+-    if (method === "unknown") {
+-      prompts.log.error(`opencode is installed to ${process.execPath} and may be managed by a package manager`)
+-      const install = await prompts.select({
+-        message: "Install anyways?",
+-        options: [
+-          { label: "Yes", value: true },
+-          { label: "No", value: false },
+-        ],
+-        initialValue: false,
+-      })
+-      if (!install) {
+-        prompts.outro("Done")
+-        return
+-      }
+-    }
+-    prompts.log.info("Using method: " + method)
+-    const target = args.target ? args.target.replace(/^v/, "") : await Installation.latest()
+-
+-    if (InstallationVersion === target) {
+-      prompts.log.warn(`opencode upgrade skipped: ${target} is already installed`)
+-      prompts.outro("Done")
+-      return
+-    }
+-
+-    prompts.log.info(`From ${InstallationVersion} → ${target}`)
+-    const spinner = prompts.spinner()
+-    spinner.start("Upgrading...")
+-    const err = await Installation.upgrade(method, target).catch((err) => err)
+-    if (err) {
+-      spinner.stop("Upgrade failed", 1)
+-      if (err instanceof Installation.UpgradeFailedError) {
+-        // necessary because choco only allows install/upgrade in elevated terminals
+-        if (method === "choco" && err.stderr.includes("not running from an elevated command shell")) {
+-          prompts.log.error("Please run the terminal as Administrator and try again")
+-        } else {
+-          prompts.log.error(err.stderr)
+-        }
+-      } else if (err instanceof Error) prompts.log.error(err.message)
+-      prompts.outro("Done")
+-      return
+-    }
+-    spinner.stop("Upgrade complete")
+-    prompts.outro("Done")
++    // ponytail: fork guard — prevent pulling upstream binary over custom build
++    prompts.log.warn("jenzocode is built from source. To update, pull from git and run 'bun run deploy:jenzo'.")
++    prompts.outro("Aborted to protect custom fork.")
+   },
+ }
+diff --git a/packages/opencode/src/cli/cmd/web.ts b/packages/opencode/src/cli/cmd/web.ts
+index 69a981a..7a9b494 100644
+--- a/packages/opencode/src/cli/cmd/web.ts
++++ b/packages/opencode/src/cli/cmd/web.ts
+@@ -31,7 +31,7 @@ function getNetworkIPs() {
+ export const WebCommand = effectCmd({
+   command: "web",
+   builder: (yargs) => withNetworkOptions(yargs),
+-  describe: "start opencode server and open web interface",
++  describe: "start jenzocode server and open web interface",
+   // Server loads instances per-request via x-opencode-directory header — no
+   // ambient project InstanceContext needed at startup.
+   instance: false,
+diff --git a/packages/opencode/src/cli/ui.ts b/packages/opencode/src/cli/ui.ts
+index 6ad6495..34bf4dd 100644
+--- a/packages/opencode/src/cli/ui.ts
++++ b/packages/opencode/src/cli/ui.ts
+@@ -3,10 +3,10 @@ import { Schema } from "effect"
+ import { logo as glyphs } from "./logo"
+ 
+ const wordmark = [
+-  `⠀                                ▄     `,
+-  `█▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█`,
+-  `█  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀`,
+-  `▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀`,
++  `⠀  ▄                                  ▄     `,
++  `   █ █▀▀█ █▀▀▄ ▀▀▀█ █▀▀█ █▀▀▀ █▀▀█ █▀▀█ █▀▀█`,
++  `   █ █▀▀▀ █  █   ▄▀ █  █ █    █  █ █  █ █▀▀▀`,
++  `▀▀▀█ ▀▀▀▀ ▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀`,
+ ]
+ 
+ export class CancelledError extends Schema.TaggedErrorClass<CancelledError>()("UICancelledError", {}) {}
+diff --git a/packages/opencode/src/index.ts b/packages/opencode/src/index.ts
+index 13540a7..635b674 100644
+--- a/packages/opencode/src/index.ts
++++ b/packages/opencode/src/index.ts
+@@ -34,7 +34,7 @@ const args = hideBin(process.argv)
+ 
+ function show(out: string) {
+   const text = out.trimStart()
+-  if (!text.startsWith("opencode ")) {
++  if (!text.startsWith("jenzocode ") && !text.startsWith("jc ")) {
+     process.stderr.write(UI.logo() + EOL + EOL)
+     process.stderr.write(text + EOL)
+     return
+@@ -44,7 +44,7 @@ function show(out: string) {
+ 
+ const cli = yargs(args)
+   .parserConfiguration({ "populate--": true })
+-  .scriptName("opencode")
++  .scriptName("jenzocode")
+   .wrap(100)
+   .help("help", "show help")
+   .alias("help", "h")
+diff --git a/packages/tui/src/app.tsx b/packages/tui/src/app.tsx
+index 3f1da52..e6e4484 100644
+--- a/packages/tui/src/app.tsx
++++ b/packages/tui/src/app.tsx
+@@ -454,24 +454,24 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
+     if (!terminalTitleEnabled() || Flag.OPENCODE_DISABLE_TERMINAL_TITLE) return
+ 
+     if (route.data.type === "home") {
+-      renderer.setTerminalTitle("OpenCode")
++      renderer.setTerminalTitle("JenzoCode")
+       return
+     }
+ 
+     if (route.data.type === "session") {
+       const session = sync.session.get(route.data.sessionID)
+       if (!session || isDefaultTitle(session.title)) {
+-        renderer.setTerminalTitle("OpenCode")
++        renderer.setTerminalTitle("JenzoCode")
+         return
+       }
+ 
+       const title = session.title.length > 40 ? session.title.slice(0, 37) + "…" : session.title
+-      renderer.setTerminalTitle(`OC | ${title}`)
++      renderer.setTerminalTitle(`JC | ${title}`)
+       return
+     }
+ 
+     if (route.data.type === "plugin") {
+-      renderer.setTerminalTitle(`OC | ${route.data.id}`)
++      renderer.setTerminalTitle(`JC | ${route.data.id}`)
+     }
+   })
+ 
+diff --git a/packages/tui/src/feature-plugins/sidebar/footer.tsx b/packages/tui/src/feature-plugins/sidebar/footer.tsx
+index c59046a..769146a 100644
+--- a/packages/tui/src/feature-plugins/sidebar/footer.tsx
++++ b/packages/tui/src/feature-plugins/sidebar/footer.tsx
+@@ -53,7 +53,7 @@ function View(props: { api: TuiPluginApi; sessionID: string }) {
+                 ✕
+               </text>
+             </box>
+-            <text fg={theme().textMuted}>OpenCode includes free models so you can start immediately.</text>
++            <text fg={theme().textMuted}>JenzoCode includes free models so you can start immediately.</text>
+             <text fg={theme().textMuted}>
+               Connect from 75+ providers to use other models, including Claude, GPT, Gemini etc
+             </text>
+diff --git a/packages/tui/src/logo.ts b/packages/tui/src/logo.ts
+index a58a8cf..94f14f1 100644
+--- a/packages/tui/src/logo.ts
++++ b/packages/tui/src/logo.ts
+@@ -1,6 +1,16 @@
+ export const logo = {
+-  left: ["                   ", "█▀▀█ █▀▀█ █▀▀█ █▀▀▄", "█__█ █__█ █^^^ █__█", "▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀~~▀"],
+-  right: ["             ▄     ", "█▀▀▀ █▀▀█ █▀▀█ █▀▀█", "█___ █__█ █__█ █^^^", "▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀"],
++  left: [
++    "   ▄                    ",
++    "   █ █▀▀█ █▀▀▄ ▀▀▀█ █▀▀█",
++    "   █ █^^^ █__█   ▄▀ █__█",
++    "▀▀▀█ ▀▀▀▀ ▀~~▀ ▀▀▀▀ ▀▀▀▀",
++  ],
++  right: [
++    "             ▄     ",
++    "█▀▀▀ █▀▀█ █▀▀█ █▀▀█",
++    "█___ █__█ █__█ █^^^",
++    "▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀",
++  ],
+ }
+ 
+ export const go = {
+diff --git a/packages/tui/src/routes/session/permission.tsx b/packages/tui/src/routes/session/permission.tsx
+index fbe3aac..6396196 100644
+--- a/packages/tui/src/routes/session/permission.tsx
++++ b/packages/tui/src/routes/session/permission.tsx
+@@ -141,11 +141,11 @@ export function PermissionPrompt(props: { request: PermissionRequest; directory?
+           body={
+             <Switch>
+               <Match when={props.request.always.length === 1 && props.request.always[0] === "*"}>
+-                <TextBody title={"This will allow " + props.request.permission + " until OpenCode is restarted."} />
++                <TextBody title={"This will allow " + props.request.permission + " until JenzoCode is restarted."} />
+               </Match>
+               <Match when={true}>
+                 <box paddingLeft={1} gap={1}>
+-                  <text fg={theme.textMuted}>This will allow the following patterns until OpenCode is restarted</text>
++                  <text fg={theme.textMuted}>This will allow the following patterns until JenzoCode is restarted</text>
+                   <box>
+                     <For each={props.request.always}>
+                       {(pattern) => (
+@@ -483,7 +483,7 @@ function RejectPrompt(props: { onConfirm: (message: string) => void; onCancel: (
+           <text fg={theme.text}>Reject permission</text>
+         </box>
+         <box paddingLeft={1}>
+-          <text fg={theme.textMuted}>Tell OpenCode what to do differently</text>
++          <text fg={theme.textMuted}>Tell JenzoCode what to do differently</text>
+         </box>
+       </box>
+       <box

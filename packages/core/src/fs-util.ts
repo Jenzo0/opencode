@@ -254,13 +254,25 @@ export namespace FSUtil {
     }
   }
 
+  // MSYS/cygwin virtual roots — never a stripped Windows drive letter, leave for cygpath
+  const MSYS_ROOTS = new Set(["tmp", "home", "usr", "bin", "sbin", "etc", "opt", "var", "run", "proc", "sys", "dev", "mnt", "cygdrive"])
+
   export function windowsPath(p: string): string {
     if (process.platform !== "win32") return p
-    return p
+    const mapped = p
       .replace(/^\/([a-zA-Z]):(?:[\\/]|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
       .replace(/^\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
       .replace(/^\/cygdrive\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
       .replace(/^\/mnt\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
+    if (mapped !== p) return mapped
+    // ponytail: drive-less "/Users/..." = stripped drive letter → system drive; MSYS roots pass through
+    const m = p.match(/^\/([^/]+)(?:\/|$)/)
+    if (m && !MSYS_ROOTS.has(m[1].toLowerCase())) {
+      const sys = process.env.SystemDrive || (process.env.WINDIR || process.env.COMSPEC || "C:").slice(0, 2)
+      const drive = /^[A-Za-z]:$/.test(sys) ? sys.toUpperCase() : "C:"
+      return `${drive}/${p.slice(1)}`
+    }
+    return p
   }
 
   export function overlaps(a: string, b: string) {

@@ -60,7 +60,13 @@ export async function killTree(proc: ChildProcess, opts?: { exited?: () => boole
 }
 
 function stat(file: string) {
-  return statSync(file, { throwIfNoEntry: false }) ?? undefined
+  // ponytail: EACCES/EPERM (Win Store stubs in WindowsApps) = unusable, same as missing
+  if (process.platform === "win32" && file.toLowerCase().includes("\\windowsapps\\")) return undefined
+  try {
+    return statSync(file, { throwIfNoEntry: false }) ?? undefined
+  } catch {
+    return undefined
+  }
 }
 
 function full(file: string) {
@@ -96,13 +102,16 @@ function resolve(file: string) {
 }
 
 function win() {
-  return Array.from(
+  const found = Array.from(
     new Set(
       [which("pwsh"), which("powershell"), gitbash(), process.env.COMSPEC || "cmd.exe"]
         .filter((item): item is string => Boolean(item))
         .map(full),
     ),
   )
+  // ponytail: Store stubs resolve to nothing — prefer usable shells, keep raw list as last resort
+  const usable = found.filter((s) => resolve(s))
+  return usable.length ? usable : found
 }
 
 async function unix() {

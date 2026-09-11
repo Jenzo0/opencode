@@ -529,7 +529,9 @@ describe("tool.shell permissions", () => {
               ).toMatchObject({ message: err.message })
               expect(requests[0]?.permission).toBe("external_directory")
               if (requests[0]?.permission !== "external_directory") return
-              expect(requests[0].patterns).toContain(glob(path.join(path.dirname(item.shell), "*")))
+              // Store stubs (WindowsApps) never execute — the command really runs under the resolved shell
+              const running = Shell.acceptable() ?? item.shell
+              expect(requests[0].patterns).toContain(glob(path.join(path.dirname(running), "*")))
             }),
           ),
         ),

@@ -12,11 +12,14 @@
     "bench:test": "bun run script/bench-test-suite.ts",
     "profile:test": "bun run script/profile-test-files.ts",
     "build": "bun run script/build.ts",
+    "build:jenzo": "OPENCODE_CHANNEL=dev bun run script/build.ts --single --skip-install",
+    "deploy:jenzo": "bun run build:jenzo && cp dist/opencode-windows-x64/bin/jenzocode.exe C:/Users/Jenzo/bin/jenzocode.exe && cp dist/opencode-windows-x64/bin/jenzocode.exe C:/Users/Jenzo/bin/jc.exe",
     "dev": "bun run ./src/index.ts",
     "dev:temporary": "bun run ./src/temporary.ts"
   },
   "bin": {
-    "opencode": "./bin/opencode"
+    "jenzocode": "./bin/opencode",
+    "jc": "./bin/opencode"
   },
   "exports": {
     "./*": "./src/*.ts"
