@@ -986,7 +986,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
                 ctrl.enqueue(encoder.encode(text.replace(/"role"\s*:\s*""/g, '"role":"assistant"')))
               },
               cancel() {
-                reader.cancel()
+                void reader.cancel()
               },
             })
             return new Response(stream, { headers: response.headers, status: response.status })

@@ -398,13 +398,20 @@ export async function create(input: {
       }
 
       for (const request of requests) {
-        request.then((result) => {
-          results.push(result)
-          pending -= 1
-          const merged = mergeResults(filePath, results)
-          finish(merged)
-          if (pending === 0) finish(merged, true)
-        })
+        request.then(
+          (result) => {
+            results.push(result)
+            pending -= 1
+            const merged = mergeResults(filePath, results)
+            finish(merged)
+            if (pending === 0) finish(merged, true)
+          },
+          // ponytail: a rejected pull must not hang the aggregator forever
+          () => {
+            pending -= 1
+            if (pending === 0) finish(mergeResults(filePath, results), true)
+          },
+        )
       }
     })
   }

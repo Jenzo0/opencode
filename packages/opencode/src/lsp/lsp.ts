@@ -275,11 +275,19 @@ const layer = Layer.effect(
           const task = schedule(server, root, root + server.id)
           s.spawning.set(root + server.id, task)
 
-          task.finally(() => {
-            if (s.spawning.get(root + server.id) === task) {
-              s.spawning.delete(root + server.id)
-            }
-          })
+          // ponytail: then(onFulfilled, onRejected) — finally() would rethrow an unobserved rejection
+          task.then(
+            () => {
+              if (s.spawning.get(root + server.id) === task) {
+                s.spawning.delete(root + server.id)
+              }
+            },
+            () => {
+              if (s.spawning.get(root + server.id) === task) {
+                s.spawning.delete(root + server.id)
+              }
+            },
+          )
 
           const client = await task
           if (!client) continue
